@@ -1,4 +1,3 @@
-/node_modules
 /playground
 dev.html
 jsdoc.json
@@ -8,4 +7,3 @@ node_modules
 .sass-cache
 npm-debug.log
 .node-version
-bower_components/
