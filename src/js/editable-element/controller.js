@@ -221,7 +221,7 @@ angular.module('xeditable').factory('editableController',
 
         self.controlsEl.append(self.buttonsEl);
         
-        self.inputEl.addClass('editable-has-buttons');
+        self.inputEl.addClass('editable-has-buttons md-input');
       }
 
       //build error

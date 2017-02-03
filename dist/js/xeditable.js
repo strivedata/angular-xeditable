@@ -1,7 +1,7 @@
 /*!
 angular-xeditable - 0.6.0
 Edit-in-place for angular.js
-Build date: 2016-12-27 
+Build date: 2017-02-03 
 */
 /**
  * Angular-xeditable module 
@@ -174,7 +174,8 @@ angular.module('xeditable').directive('editableBsdate', ['editableDirectiveFacto
             ['eDatePickerAppendToBody', 'datepicker-append-to-body'],
             ['eOnOpenFocus', 'on-open-focus'],
             ['eName', 'name'],
-            ['eDateDisabled', 'date-disabled']
+            ['eDateDisabled', 'date-disabled'],
+            ['eAltInputFormats', 'alt-input-formats']
         ];
 
         var dateOptionsNames = [
@@ -321,10 +322,11 @@ angular.module('xeditable').directive('editableCheckbox', ['editableDirectiveFac
       inputTpl: '<input type="checkbox">',
       render: function() {
         this.parent.render.call(this);
-        if(this.attrs.eTitle) {
-          this.inputEl.wrap('<label></label>');
+        this.inputEl.wrap('<label></label>');
+        
+        if (this.attrs.eTitle) {
           this.inputEl.parent().append('<span>' + this.attrs.eTitle + '</span>');
-        }
+       }
       },
       autosubmit: function() {
         var self = this;
@@ -403,7 +405,8 @@ angular.module('xeditable').directive('editableCombodate', ['editableDirectiveFa
 
         var combodate = editableCombodate.getInstance(this.inputEl, options);
         combodate.$widget.find('select').bind('change', function(e) {
-          self.scope.$data = (new Date(combodate.getValue())).toISOString();
+          //.replace is so this works in Safari
+          self.scope.$data = (new Date(combodate.getValue().replace(/-/g, "/"))).toISOString();
         });
       }
     });
@@ -471,7 +474,7 @@ Input types: text|password|email|tel|number|url|search|color|date|datetime|datet
             var self = this;
             self.inputEl.bind('keydown', function(e) {
                 //submit on tab
-                if (e.keyCode === 9) {
+                if (e.keyCode === 9 && self.editorEl.attr('blur') === 'submit') {
                     self.scope.$apply(function() {
                         self.scope.$form.$submit();
                     });
@@ -589,11 +592,14 @@ angular.module('xeditable').directive('editableSelect', ['editableDirectiveFacto
       },
       autosubmit: function() {
         var self = this;
-        self.inputEl.bind('change', function() {
-          self.scope.$apply(function() {
-            self.scope.$form.$submit();
+
+        if (!self.attrs.hasOwnProperty("eMultiple")) {
+          self.inputEl.bind('change', function () {
+            self.scope.$apply(function () {
+                self.scope.$form.$submit();
+            });
           });
-        });
+        }
       }
     });
 }]);
@@ -620,7 +626,8 @@ angular.module('xeditable').directive('editableTextarea', ['editableDirectiveFac
                 self.scope.$form.$submit();
               });
             }
-          } else if ((e.ctrlKey || e.metaKey) && (e.keyCode === 13)) {
+          } else if ((e.ctrlKey || e.metaKey) && (e.keyCode === 13) || 
+                (e.keyCode === 9 && self.editorEl.attr('blur') === 'submit')) {
             self.scope.$apply(function() {
               self.scope.$form.$submit();
             });
@@ -696,8 +703,8 @@ angular.module('xeditable').factory('editableController',
   function($q, editableUtils) {
 
   //EditableController function
-  EditableController.$inject = ['$scope', '$attrs', '$element', '$parse', 'editableThemes', 'editableIcons', 'editableOptions', '$rootScope', '$compile', '$q'];
-  function EditableController($scope, $attrs, $element, $parse, editableThemes, editableIcons, editableOptions, $rootScope, $compile, $q) {
+  EditableController.$inject = ['$scope', '$attrs', '$element', '$parse', 'editableThemes', 'editableIcons', 'editableOptions', '$rootScope', '$compile', '$q', '$sce'];
+  function EditableController($scope, $attrs, $element, $parse, editableThemes, editableIcons, editableOptions, $rootScope, $compile, $q, $sce) {
     var valueGetter;
 
     //if control is disabled - it does not participate in waiting process
@@ -905,7 +912,7 @@ angular.module('xeditable').factory('editableController',
 
         self.controlsEl.append(self.buttonsEl);
         
-        self.inputEl.addClass('editable-has-buttons');
+        self.inputEl.addClass('editable-has-buttons md-input');
       }
 
       //build error
@@ -1134,7 +1141,7 @@ angular.module('xeditable').factory('editableController',
 
     self.setError = function(msg) {
       if(!angular.isObject(msg)) {
-        $scope.$error = msg;
+        $scope.$error = $sce.trustAsHtml(msg);
         self.error = msg;
       }
     };
@@ -2562,7 +2569,7 @@ angular.module('xeditable').factory('editableThemes', function() {
       noformTpl:    '<span class="editable-wrap"></span>',
       controlsTpl:  '<span class="editable-controls"></span>',
       inputTpl:     '',
-      errorTpl:     '<div class="editable-error" data-ng-if="$error" data-ng-bind="$error"></div>',
+      errorTpl:     '<div class="editable-error" data-ng-if="$error" data-ng-bind-html="$error"></div>',
       buttonsTpl:   '<span class="editable-buttons"></span>',
       submitTpl:    '<button type="submit">save</button>',
       cancelTpl:    '<button type="button" ng-click="$form.$cancel()">cancel</button>',
@@ -2575,7 +2582,7 @@ angular.module('xeditable').factory('editableThemes', function() {
       noformTpl:   '<span class="editable-wrap"></span>',
       controlsTpl: '<div class="editable-controls controls control-group" ng-class="{\'error\': $error}"></div>',
       inputTpl:    '',
-      errorTpl:    '<div class="editable-error help-block" data-ng-if="$error" data-ng-bind="$error"></div>',
+      errorTpl:    '<div class="editable-error help-block" data-ng-if="$error" data-ng-bind-html="$error"></div>',
       buttonsTpl:  '<span class="editable-buttons"></span>',
       submitTpl:   '<button type="submit" class="btn btn-primary"><span></span></button>',
       cancelTpl:   '<button type="button" class="btn" ng-click="$form.$cancel()">'+
@@ -2591,7 +2598,7 @@ angular.module('xeditable').factory('editableThemes', function() {
       noformTpl:   '<span class="editable-wrap"></span>',
       controlsTpl: '<div class="editable-controls form-group" ng-class="{\'has-error\': $error}"></div>',
       inputTpl:    '',
-      errorTpl:    '<div class="editable-error help-block" data-ng-if="$error" data-ng-bind="$error"></div>',
+      errorTpl:    '<div class="editable-error help-block" data-ng-if="$error" data-ng-bind-html="$error"></div>',
       buttonsTpl:  '<span class="editable-buttons"></span>',
       submitTpl:   '<button type="submit" class="btn btn-primary"><span></span></button>',
       cancelTpl:   '<button type="button" class="btn btn-default" ng-click="$form.$cancel()">'+
@@ -2650,7 +2657,7 @@ angular.module('xeditable').factory('editableThemes', function() {
       noformTpl:   '<span class="editable-wrap"></span>',
       controlsTpl: '<div class="editable-controls ui fluid input" ng-class="{\'error\': $error}"></div>',
       inputTpl:    '',
-      errorTpl:    '<div class="editable-error ui error message" data-ng-if="$error" data-ng-bind="$error"></div>',
+      errorTpl:    '<div class="editable-error ui error message" data-ng-if="$error" data-ng-bind-html="$error"></div>',
       buttonsTpl:  '<span class="mini ui buttons"></span>',
       submitTpl:   '<button type="submit" class="ui primary button"><i class="ui check icon"></i></button>',
       cancelTpl:   '<button type="button" class="ui button" ng-click="$form.$cancel()">'+
